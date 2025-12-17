@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Mon App Camion HazMat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://unpkg.com/@turf/turf@6/turf.min.js'></script>
+
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+        /* Le design de l'alerte ROUGE */
+        #alerte-box {
+            display: none; /* Caché par défaut */
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255, 0, 0, 0.9); /* Fond rouge très visible */
+            color: white;
+            z-index: 9999;
+            display: flex; flex-direction: column; 
+            justify-content: center; align-items: center;
+            text-align: center;
+        }
+        #alerte-texte {
+            font-size: 40px; font-weight: bold; font-family: Arial, sans-serif;
+            text-transform: uppercase;
+            animation: clignote 0.5s infinite; /* Ça clignote vite */
+        }
+        @keyframes clignote { 50% { opacity: 0.2; } }
+
+        /* Petit compteur de vitesse en bas */
+        #info-box {
+            position: absolute; bottom: 20px; left: 20px;
+            background: white; padding: 10px; border-radius: 5px;
+            font-family: sans-serif; z-index: 10001;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div id="alerte-box" style="display:none;">    <div id="alerte-texte">⛔ TUNNEL INTERDIT ⛔<br>HAZMAT DÉTECTÉ</div>
+</div>
+
+<div id="info-box">Recherche du GPS...</div>
+<div id="map"></div>
+
+<script>
+    // --- TA CLÉ EST DÉJÀ INSÉRÉE ICI ---
+    mapboxgl.accessToken = 'pk.eyJ1IjoiYm9iMTkiLCJhIjoiY21qOWpybDZ0MDFwcDNkcTd4MjVqaHZjdiJ9.Wp3zVaQn2A-IWUwTRvpjtA';
+
+    // 2. On affiche la carte (Centrée sur Montréal)
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/navigation-night-v1', // Style sombre "GPS"
+        center: [-73.38, 46.30], 
+        zoom: 10
+    });
+
+    // 3. On définit les ZONES INTERDITES (Les polygones)
+    const zonesInterdites = {
+        'type': 'FeatureCollection',
+        'features': [
+            {
+                'type': 'Feature', // Tunnel Lafontaine
+                'geometry': {
+                    'type': 'Polygon',
+                    'coordinates': [[
+                        [-73.510, 45.570], [-73.490, 45.590], 
+                        [-73.530, 45.600], [-73.550, 45.580], 
+                        [-73.510, 45.570]
+                    ]]
+                }
+            },
+            {
+                'type': 'Feature', // Zone Ville-Marie
+                'geometry': {
+                    'type': 'Polygon',
+                    'coordinates': [[
+                        [-73.580, 45.490], [-73.550, 45.515],
+                        [-73.540, 45.510], [-73.570, 45.480],
+                        [-73.580, 45.490]
+                    ]]
+                }
+            }
+        ]
+    };
+
+    map.on('load', () => {
+        // A. Dessiner les zones en ROUGE sur la carte
+        map.addSource('source-zones', { 'type': 'geojson', 'data': zonesInterdites });
+        map.addLayer({
+            'id': 'layer-zones',
+            'type': 'fill',
+            'source': 'source-zones',
+            'paint': {
+                'fill-color': '#ff0000', // Rouge
+                'fill-opacity': 0.4      // Un peu transparent
+            }
+        });
+
+        // B. Activer le GPS du téléphone
+        const geolocate = new mapboxgl.GeolocateControl({
+            positionOptions: { enableHighAccuracy: true },
+            trackUserLocation: true,
+            showUserHeading: true
+        });
+        map.addControl(geolocate);
+
+        // C. LE CERVEAU : Vérifier la position chaque fois que tu bouges
+        geolocate.on('geolocate', (position) => {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            const maPosition = turf.point([longitude, latitude]);
+
+            // Afficher la précision GPS en bas
+            document.getElementById('info-box').innerText = 
+                `Lat: ${latitude.toFixed(4)} | Lon: ${longitude.toFixed(4)}`;
+
+            // Vérification : Suis-je dans une zone rouge ?
+            let danger = false;
+            zonesInterdites.features.forEach(function(zone) {
+                if (turf.booleanPointInPolygon(maPosition, zone)) {
+                    danger = true;
+                }
+            });
+
+            // Action : Afficher ou cacher l'alerte géante
+            const ecranAlerte = document.getElementById('alerte-box');
+            if (danger) {
+                ecranAlerte.style.display = 'flex'; // AFFICHER L'ALERTE
+            } else {
+                ecranAlerte.style.display = 'none'; // Tout est beau
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
