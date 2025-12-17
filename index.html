@@ -61,33 +61,43 @@
     });
 
     // 3. On définit les ZONES INTERDITES (Les polygones)
+    const zonesInterdites = { // 3. ZONES INTERDITES V2 (PRÉCISION CHIRURGICALE)
+    // Ces zones suivent la courbe des tunnels pour permettre de prendre les sorties
     const zonesInterdites = {
         'type': 'FeatureCollection',
         'features': [
             {
-                'type': 'Feature', // Tunnel Lafontaine
+                'type': 'Feature', 
+                'properties': { 'nom': 'Tunnel Lafontaine' },
                 'geometry': {
                     'type': 'Polygon',
                     'coordinates': [[
-                        [-73.510, 45.570], [-73.490, 45.590], 
-                        [-73.530, 45.600], [-73.550, 45.580], 
-                        [-73.510, 45.570]
+                        // On trace un rectangle très fin juste sur le tube du tunnel
+                        [-73.5080, 45.5775], // Entrée Nord (Montréal) - Après la sortie Souligny
+                        [-73.5060, 45.5785], 
+                        [-73.4980, 45.5680], // Sortie Sud (Rive-Sud) - Après l'Île Charron
+                        [-73.5000, 45.5670],
+                        [-73.5080, 45.5775]  // On ferme la boucle
                     ]]
                 }
             },
             {
-                'type': 'Feature', // Zone Ville-Marie
+                'type': 'Feature',
+                'properties': { 'nom': 'Tunnel Ville-Marie' },
                 'geometry': {
                     'type': 'Polygon',
                     'coordinates': [[
-                        [-73.580, 45.490], [-73.550, 45.515],
-                        [-73.540, 45.510], [-73.570, 45.480],
-                        [-73.580, 45.490]
+                        // Zone Ville-Marie (Resserrée sur l'autoroute 720/136)
+                        [-73.5850, 45.4880], // Ouest (Vers Atwater)
+                        [-73.5830, 45.4900], 
+                        [-73.5500, 45.5150], // Est (Vers Papineau)
+                        [-73.5480, 45.5130],
+                        [-73.5850, 45.4880]
                     ]]
                 }
             }
         ]
-    };
+    };   };
 
     map.on('load', () => {
         // A. Dessiner les zones en ROUGE sur la carte
@@ -140,4 +150,5 @@
 </script>
 
 </body>
+
 </html>
