@@ -55,39 +55,46 @@
     const map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/navigation-night-v1',
-        center: [-73.38, 46.30], // Centré St-Gabriel
-        zoom: 10
+        center: [-73.56, 45.50], // Centré sur Montréal pour voir les zones
+        zoom: 11
     });
 
-    // ZONES INTERDITES V2 (PRÉCISION)
+    // ZONES INTERDITES V3 (ULTRA PRÉCISION)
+    // Stratégie : On couvre seulement le MILIEU des tunnels pour laisser les sorties libres.
     const zonesInterdites = {
         'type': 'FeatureCollection',
         'features': [
             {
                 'type': 'Feature', 
-                'properties': { 'nom': 'Tunnel Lafontaine' },
+                'properties': { 'nom': 'Tunnel Lafontaine (Fleuve Uniquement)' },
                 'geometry': {
                     'type': 'Polygon',
                     'coordinates': [[
-                        [-73.5080, 45.5775], 
-                        [-73.5060, 45.5785], 
-                        [-73.4980, 45.5680], 
-                        [-73.5000, 45.5670],
-                        [-73.5080, 45.5775]
+                        // On commence APRÈS la rive (dans l'eau) pour laisser les sorties libres
+                        [-73.5055, 45.5765], // Rive Nord (Dans le fleuve)
+                        [-73.5045, 45.5770], 
+                        [-73.5000, 45.5710], // Rive Sud (Dans le fleuve)
+                        [-73.5010, 45.5705],
+                        [-73.5055, 45.5765]  // On ferme la boucle
                     ]]
                 }
             },
             {
                 'type': 'Feature',
-                'properties': { 'nom': 'Tunnel Ville-Marie' },
+                'properties': { 'nom': 'Tunnel Ville-Marie (Centre)' },
                 'geometry': {
                     'type': 'Polygon',
                     'coordinates': [[
-                        [-73.5850, 45.4880], 
-                        [-73.5830, 45.4900], 
-                        [-73.5500, 45.5150], 
-                        [-73.5480, 45.5130],
-                        [-73.5850, 45.4880]
+                        // Forme complexe qui suit la courbe de l'autoroute 720
+                        // On laisse les entrées Guy et les sorties Atwater libres
+                        [-73.5750, 45.4950], // Début zone (Vers Guy/Concordia)
+                        [-73.5650, 45.5030], // Virage du centre-ville
+                        [-73.5520, 45.5140], // Fin zone (Vers Viger/Papineau)
+                        
+                        [-73.5510, 45.5130], // On redescend (largeur de l'autoroute)
+                        [-73.5640, 45.5020], 
+                        [-73.5740, 45.4940],
+                        [-73.5750, 45.4950]  // On ferme
                     ]]
                 }
             }
@@ -103,8 +110,6 @@
             'paint': { 'fill-color': '#ff0000', 'fill-opacity': 0.4 }
         });
 
-        // C'EST ICI QUE TU AVAIS COUPÉ LE CODE !
-        // Je remets la partie GPS manquante :
         const geolocate = new mapboxgl.GeolocateControl({
             positionOptions: { enableHighAccuracy: true },
             trackUserLocation: true,
