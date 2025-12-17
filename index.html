@@ -13,11 +13,10 @@
         body { margin: 0; padding: 0; }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; }
 
-        /* Le design de l'alerte ROUGE */
         #alerte-box {
-            display: none; /* Caché par défaut */
+            display: none; 
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(255, 0, 0, 0.9); /* Fond rouge très visible */
+            background-color: rgba(255, 0, 0, 0.9); 
             color: white;
             z-index: 9999;
             display: flex; flex-direction: column; 
@@ -27,41 +26,40 @@
         #alerte-texte {
             font-size: 40px; font-weight: bold; font-family: Arial, sans-serif;
             text-transform: uppercase;
-            animation: clignote 0.5s infinite; /* Ça clignote vite */
+            animation: clignote 0.5s infinite;
         }
         @keyframes clignote { 50% { opacity: 0.2; } }
 
-        /* Petit compteur de vitesse en bas */
         #info-box {
             position: absolute; bottom: 20px; left: 20px;
             background: white; padding: 10px; border-radius: 5px;
-            font-family: sans-serif; z-index: 10001;
+            font-family: sans-serif; 
+            z-index: 10001; 
             font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-<div id="alerte-box" style="display:none;">    <div id="alerte-texte">⛔ TUNNEL INTERDIT ⛔<br>HAZMAT DÉTECTÉ</div>
+<div id="alerte-box" style="display:none;">
+    <div id="alerte-texte">⛔ TUNNEL INTERDIT ⛔<br>HAZMAT DÉTECTÉ</div>
 </div>
 
 <div id="info-box">Recherche du GPS...</div>
 <div id="map"></div>
 
 <script>
-    // --- TA CLÉ EST DÉJÀ INSÉRÉE ICI ---
+    // TA CLÉ MAPBOX
     mapboxgl.accessToken = 'pk.eyJ1IjoiYm9iMTkiLCJhIjoiY21qOWpybDZ0MDFwcDNkcTd4MjVqaHZjdiJ9.Wp3zVaQn2A-IWUwTRvpjtA';
 
-    // 2. On affiche la carte (Centrée sur Montréal)
     const map = new mapboxgl.Map({
         container: 'map',
-        style: 'mapbox://styles/mapbox/navigation-night-v1', // Style sombre "GPS"
-        center: [-73.38, 46.30], 
+        style: 'mapbox://styles/mapbox/navigation-night-v1',
+        center: [-73.38, 46.30], // Centré St-Gabriel
         zoom: 10
     });
 
-
-    // Ces zones suivent la courbe des tunnels pour permettre de prendre les sorties
+    // ZONES INTERDITES V2 (PRÉCISION)
     const zonesInterdites = {
         'type': 'FeatureCollection',
         'features': [
@@ -71,12 +69,11 @@
                 'geometry': {
                     'type': 'Polygon',
                     'coordinates': [[
-                        // On trace un rectangle très fin juste sur le tube du tunnel
-                        [-73.5080, 45.5775], // Entrée Nord (Montréal) - Après la sortie Souligny
+                        [-73.5080, 45.5775], 
                         [-73.5060, 45.5785], 
-                        [-73.4980, 45.5680], // Sortie Sud (Rive-Sud) - Après l'Île Charron
+                        [-73.4980, 45.5680], 
                         [-73.5000, 45.5670],
-                        [-73.5080, 45.5775]  // On ferme la boucle
+                        [-73.5080, 45.5775]
                     ]]
                 }
             },
@@ -86,32 +83,28 @@
                 'geometry': {
                     'type': 'Polygon',
                     'coordinates': [[
-                        // Zone Ville-Marie (Resserrée sur l'autoroute 720/136)
-                        [-73.5850, 45.4880], // Ouest (Vers Atwater)
+                        [-73.5850, 45.4880], 
                         [-73.5830, 45.4900], 
-                        [-73.5500, 45.5150], // Est (Vers Papineau)
+                        [-73.5500, 45.5150], 
                         [-73.5480, 45.5130],
                         [-73.5850, 45.4880]
                     ]]
                 }
             }
         ]
-    };   };
+    };
 
     map.on('load', () => {
-        // A. Dessiner les zones en ROUGE sur la carte
         map.addSource('source-zones', { 'type': 'geojson', 'data': zonesInterdites });
         map.addLayer({
             'id': 'layer-zones',
             'type': 'fill',
             'source': 'source-zones',
-            'paint': {
-                'fill-color': '#ff0000', // Rouge
-                'fill-opacity': 0.4      // Un peu transparent
-            }
+            'paint': { 'fill-color': '#ff0000', 'fill-opacity': 0.4 }
         });
 
-        // B. Activer le GPS du téléphone
+        // C'EST ICI QUE TU AVAIS COUPÉ LE CODE !
+        // Je remets la partie GPS manquante :
         const geolocate = new mapboxgl.GeolocateControl({
             positionOptions: { enableHighAccuracy: true },
             trackUserLocation: true,
@@ -119,17 +112,14 @@
         });
         map.addControl(geolocate);
 
-        // C. LE CERVEAU : Vérifier la position chaque fois que tu bouges
         geolocate.on('geolocate', (position) => {
-            const latitude = position.coords.latitude;
-            const longitude = position.coords.longitude;
-            const maPosition = turf.point([longitude, latitude]);
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const maPosition = turf.point([lon, lat]);
 
-            // Afficher la précision GPS en bas
             document.getElementById('info-box').innerText = 
-                `Lat: ${latitude.toFixed(4)} | Lon: ${longitude.toFixed(4)}`;
+                `Lat: ${lat.toFixed(5)} | Lon: ${lon.toFixed(5)}`;
 
-            // Vérification : Suis-je dans une zone rouge ?
             let danger = false;
             zonesInterdites.features.forEach(function(zone) {
                 if (turf.booleanPointInPolygon(maPosition, zone)) {
@@ -137,18 +127,15 @@
                 }
             });
 
-            // Action : Afficher ou cacher l'alerte géante
             const ecranAlerte = document.getElementById('alerte-box');
             if (danger) {
-                ecranAlerte.style.display = 'flex'; // AFFICHER L'ALERTE
+                ecranAlerte.style.display = 'flex';
             } else {
-                ecranAlerte.style.display = 'none'; // Tout est beau
+                ecranAlerte.style.display = 'none';
             }
         });
     });
 </script>
 
 </body>
-
 </html>
-
